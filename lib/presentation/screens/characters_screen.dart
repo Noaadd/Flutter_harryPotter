@@ -3,25 +3,42 @@ import 'package:blockflutter/presentation/blocs/characters_events.dart';
 import 'package:blockflutter/presentation/blocs/characters_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-class CharactersScreen extends StatefulWidget{
+import 'package:go_router/go_router.dart';
+
+import '../blocs/login/login_bloc.dart';
+import '../blocs/login/login_event.dart';
+
+class CharactersScreen extends StatefulWidget {
   const CharactersScreen({super.key});
 
   @override
   State<CharactersScreen> createState() => _CharacterScreenState();
 }
 
-class _CharacterScreenState extends State<CharactersScreen>{
+class _CharacterScreenState extends State<CharactersScreen> {
   String _filter = '';
 
   @override
-  void inisState(){
+  void initState() {
     super.initState();
     context.read<CharacterBloc>().add(LoadCharactersEvent(_filter));
   }
+
   @override
-  Widget build (BuildContext context){
+  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Personajes de Harry Potter')),
+      appBar: AppBar(
+        title: const Text('Personajes de Harry Potter'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.exit_to_app),
+            onPressed: () {
+              context.read<LoginBloc>().add(LogoutButtonPressed());
+              context.go('/login');
+            },
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Padding(
@@ -30,22 +47,23 @@ class _CharacterScreenState extends State<CharactersScreen>{
               children: [
                 Expanded(
                   child: TextField(
-                    onChanged: (value){
+                    onChanged: (value) {
                       setState(() {
                         _filter = value;
                       });
                     },
                     decoration: const InputDecoration(
                       labelText: 'Filtrar por nombre',
-                      border: OutlineInputBorder()
+                      border: OutlineInputBorder(),
                     ),
                   ),
                 ),
                 const SizedBox(width: 10),
                 FloatingActionButton(
-                  onPressed: (){
+                  onPressed: () {
                     context
-                      .read<CharacterBloc>().add(LoadCharactersEvent(_filter));
+                        .read<CharacterBloc>()
+                        .add(LoadCharactersEvent(_filter));
                   },
                   child: const Icon(Icons.search),
                 ),
@@ -55,35 +73,40 @@ class _CharacterScreenState extends State<CharactersScreen>{
           Expanded(
             child: BlocBuilder<CharacterBloc, CharacterState>(
               builder: (context, state) {
-                if(state.isLoading){
+                // Mostrar el indicador de carga mientras isLoading sea true
+                if (state.isLoading) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                else if(state.errorMessage.isNotEmpty){
+                // Mostrar mensaje de error si hay uno
+                else if (state.errorMessage.isNotEmpty) {
                   return Center(child: Text(state.errorMessage));
                 }
-                else if(state.characters.isNotEmpty){
+                // Mostrar la lista de personajes
+                else if (state.characters.isNotEmpty) {
                   return ListView.builder(
                     itemCount: state.characters.length,
-                    itemBuilder: (context, index){
+                    itemBuilder: (context, index) {
                       final character = state.characters[index];
                       return ListTile(
                         leading: Image.network(character.image),
-                        title: Text(character.name),
+                        title: Text(
+                            "${character.name} - ${character.wand.core}: ${character.wand.length}"),
                         subtitle: Text(character.house),
                       );
-                    }
+                    },
                   );
                 }
-                else{
+                // Si no hay personajes, mostrar un mensaje vacío
+                else {
                   return const Center(
-                    child: Text('No hay personajes que coincidan con el filtro'),
-                  );
+                      child: Text(
+                          'No hay personajes que coincidan con el filtro.'));
                 }
               },
             ),
-          )
+          ),
         ],
-      )
+      ),
     );
   }
 }
